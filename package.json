@@ -4,7 +4,9 @@
   "description": "Interactive web app combining camera and hand tracking to create an invisibility cloak effect",
   "main": "index.html",
   "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 8000"
+    "dev": "vite --host 0.0.0.0 --port 8000",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "devDependencies": {
     "vite": "^5.0.0"
