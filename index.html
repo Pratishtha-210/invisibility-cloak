@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aether Cloak - Invisibility Simulator</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Fullscreen App Container -->
+  <div id="app-container">
+    
+    <!-- Red Error Banner (initially hidden) -->
+    <div id="error-banner" class="hidden">
+      <span class="error-icon">⚠️</span>
+      <span id="error-message">Error message goes here.</span>
+      <button id="error-close-btn">&times;</button>
+    </div>
+
+    <!-- Active Status Toast -->
+    <div id="status-toast" class="status-badge">
+      <span class="pulse-indicator orange"></span>
+      <span id="status-toast-text">Initializing MediaPipe...</span>
+    </div>
+
+    <!-- Main Live Rendering Viewport -->
+    <div id="viewport-container">
+      <canvas id="canvas-main"></canvas>
+      <video id="webcam" autoplay playsinline muted></video>
+    </div>
+
+    <!-- Large Countdown Overlay for capturing the background -->
+    <div id="countdown-overlay" class="hidden">
+      <div class="countdown-content">
+        <div class="countdown-circle">
+          <span id="countdown-number">3</span>
+        </div>
+        <h2>GET OUT OF THE FRAME!</h2>
+        <p>Capturing the empty room snapshot...</p>
+      </div>
+    </div>
+
+    <!-- Screen Flash Effect during background capture -->
+    <div id="screen-flash"></div>
+
+    <!-- Control Side Panel (Glassmorphism) -->
+    <aside id="control-panel">
+      <header>
+        <div class="logo">
+          <span class="magic-spark">✨</span>
+          <h1>AETHER CLOAK</h1>
+        </div>
+        <p class="subtitle">MediaPipe Hand-Tracking Invisibility Simulator</p>
+      </header>
+
+      <section class="panel-section">
+        <h3>Invisibility Modes</h3>
+        <div class="mode-selector">
+          <button id="btn-mode-pose" class="mode-btn active" data-mode="pose">
+            <span class="btn-icon">👐</span>
+            <div class="btn-text">
+              <strong>Pose Frame</strong>
+              <span>Two-hand quad cloaking</span>
+            </div>
+          </button>
+          <button id="btn-mode-sweep" class="mode-btn" data-mode="sweep">
+            <span class="btn-icon">👋</span>
+            <div class="btn-text">
+              <strong>Hand Sweep</strong>
+              <span>Convex hull cloaking</span>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <h3>Cloak Visual Style</h3>
+        <div class="style-selector">
+          <button id="btn-style-invisible" class="style-btn active" data-style="invisible">
+            <span class="btn-icon">🫥</span>
+            <div class="btn-text">
+              <strong>True Invisible</strong>
+              <span>Snapshot background replacement</span>
+            </div>
+          </button>
+          <button id="btn-style-predator" class="style-btn" data-style="predator">
+            <span class="btn-icon">🌀</span>
+            <div class="btn-text">
+              <strong>Predator Shimmer</strong>
+              <span>Active refractive camouflage</span>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <h3>Calibration</h3>
+        <button id="btn-capture-bg" class="action-btn glow-effect" disabled>
+          <span class="action-icon">📸</span>
+          <span class="action-label">Capture Background</span>
+        </button>
+        <div class="bg-preview-container">
+          <span>Background Snapshot:</span>
+          <div id="bg-preview-box">
+            <canvas id="canvas-bg-preview"></canvas>
+            <span id="bg-preview-placeholder">No Snapshot Taken</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <h3>Fine-Tuning</h3>
+        
+        <!-- Smoothing Slider -->
+        <div class="slider-group">
+          <div class="slider-info">
+            <label for="slider-smoothing">Landmark Smoothing</label>
+            <span id="val-smoothing">6f</span>
+          </div>
+          <input type="range" id="slider-smoothing" min="1" max="20" value="6">
+          <span class="slider-desc">Averages coordinates over recent frames to stop edge flicker.</span>
+        </div>
+
+        <!-- Feathering Slider -->
+        <div class="slider-group">
+          <div class="slider-info">
+            <label for="slider-feather">Edge Feathering (Blur)</label>
+            <span id="val-feather">25px</span>
+          </div>
+          <input type="range" id="slider-feather" min="0" max="80" value="25">
+          <span class="slider-desc">Blurs the mask edges to blend the cloak into the video.</span>
+        </div>
+
+        <!-- Motion Trail Slider -->
+        <div class="slider-group">
+          <div class="slider-info">
+            <label for="slider-trail">Cloak Motion Trail</label>
+            <span id="val-trail">1f (None)</span>
+          </div>
+          <input type="range" id="slider-trail" min="1" max="15" value="1">
+          <span class="slider-desc">Leaves a trail of invisibility behind moving hands.</span>
+        </div>
+
+        <!-- Dilation Slider (Sweep Mode Only) -->
+        <div id="dilation-group" class="slider-group disabled">
+          <div class="slider-info">
+            <label for="slider-dilation">Cloak Dilation (Scale)</label>
+            <span id="val-dilation">1.5x</span>
+          </div>
+          <input type="range" id="slider-dilation" min="10" max="25" value="15" step="1" disabled>
+          <span class="slider-desc">Expands the hand's boundaries to cover wrists and arms.</span>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <h3>Overlay & Toggles</h3>
+        
+        <!-- Toggle Debug Skeleton -->
+        <div class="toggle-group">
+          <span class="toggle-label">
+            <strong>Debug Landmarks</strong>
+            <span>Draw raw skeleton dots and wires</span>
+          </span>
+          <label class="switch">
+            <input type="checkbox" id="toggle-debug">
+            <span class="slider-switch"></span>
+          </label>
+        </div>
+
+        <!-- Toggle Mirror View -->
+        <div class="toggle-group">
+          <span class="toggle-label">
+            <strong>Mirror Stream</strong>
+            <span>Flip video horizontally (Selfie view)</span>
+          </span>
+          <label class="switch">
+            <input type="checkbox" id="toggle-mirror" checked>
+            <span class="slider-switch"></span>
+          </label>
+        </div>
+      </section>
+
+      <footer class="panel-footer">
+        <div class="status-row">
+          <span>Engine:</span>
+          <span id="engine-status" class="status-val loading">Loading...</span>
+        </div>
+        <div class="status-row">
+          <span>Camera:</span>
+          <span id="camera-status" class="status-val loading">Connecting...</span>
+        </div>
+      </footer>
+    </aside>
+
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
